@@ -1,15 +1,13 @@
 package workerpool
 
 type worker struct {
-	exitChan chan bool
 	workChan chan *work
 	poolChan chan chan *work
 }
 
-func newWorker(poolChan chan chan *work, exitChan chan bool) *worker {
+func newWorker(poolChan chan chan *work) *worker {
 	return &worker{
 		workChan: make(chan *work),
-		exitChan: exitChan,
 		poolChan: poolChan,
 	}
 }
@@ -20,11 +18,11 @@ func (w *worker) start() {
 			w.poolChan <- w.workChan
 
 			select {
-			case w := <-w.workChan:
+			case w, ok := <-w.workChan:
+				if !ok {
+					return
+				}
 				w.payload()
-
-			case <-w.exitChan:
-				return
 			}
 		}
 	}()

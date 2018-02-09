@@ -16,6 +16,7 @@ func NewDispatcher(maxWorkers uint32) *Dispatcher {
 	return &Dispatcher{
 		maxWorkers: maxWorkers,
 		pool:       make(chan chan *work, maxWorkers),
+		jobChan:    make(chan *work),
 		exitChan:   make(chan bool),
 	}
 }
@@ -41,7 +42,7 @@ func (d *Dispatcher) Submit(job func()) {
 func (d *Dispatcher) Start() {
 	var i uint32
 	for i = 0; i < d.maxWorkers; i++ {
-		w := newWorker(d.pool, d.exitChan)
+		w := newWorker(d.pool)
 		w.start()
 	}
 
@@ -49,5 +50,14 @@ func (d *Dispatcher) Start() {
 }
 
 func (d *Dispatcher) Stop() {
-	close(d.exitChan)
+	go func() {
+		close(d.exitChan)
+
+		var i uint32 = 0
+
+		for i = 0; i < d.maxWorkers; i++ {
+			j := <-d.pool
+			close(j)
+		}
+	}()
 }
