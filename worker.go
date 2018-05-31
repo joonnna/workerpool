@@ -22,6 +22,9 @@ func (w *worker) start() {
 				if !ok {
 					return
 				}
+				if w == nil {
+					continue
+				}
 				w.payload()
 			}
 		}
